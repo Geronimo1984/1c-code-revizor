@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Form xmlns="http://v8.1c.ru/8.3/xcf/logform" version="2.20">
+	<ChildItems>
+		<Button name="ЗаполнитьЦены" id="1"><CommandName>Form.Command.ЗаполнитьЦены</CommandName></Button>
+	</ChildItems>
+	<Attributes>
+		<Attribute name="Объект" id="1"/>
+	</Attributes>
+	<Commands>
+		<Command name="ЗаполнитьЦены" id="1"><Action>ЗаполнитьЦены</Action></Command>
+	</Commands>
+</Form>

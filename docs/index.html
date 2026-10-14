@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ревизор</title>
+<meta name="description" content="Анализатор кода конфигураций 1С: межмодульные проверки, клиент-сервер, обращения к базе в цикле через цепочку вызовов, стандарты 1С:ИТС.">
+<link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --text:#14171c; --muted:#5b6472; --line:#e3e6eb;
+  --accent:#3b6cf0; --accent-2:#6b4ff0; --ok:#2e7d32; --bad:#c62828; --chip:#eef1f5; --code-bg:#0f1720; --code-text:#e6edf3;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1116; --surface:#161b22; --text:#e6edf3; --muted:#9aa5b1; --line:#262d36;
+    --accent:#7aa2ff; --accent-2:#a58bff; --ok:#56d364; --bad:#ff7b72; --chip:#1f2630; --code-bg:#0b0f14; --code-text:#e6edf3;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1116; --surface:#161b22; --text:#e6edf3; --muted:#9aa5b1; --line:#262d36;
+  --accent:#7aa2ff; --accent-2:#a58bff; --ok:#56d364; --bad:#ff7b72; --chip:#1f2630; --code-bg:#0b0f14; --code-text:#e6edf3;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:16px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+.deck{height:100vh;overflow-y:auto;scroll-snap-type:y mandatory}
+.slide{min-height:100vh;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;padding:56px 16px}
+.inner{width:100%;max-width:1060px}
+.kicker{font:600 12px/1 Inter;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+h1{font-size:clamp(34px,6vw,60px);line-height:1.05;margin:0 0 18px;letter-spacing:-.02em}
+h2{font-size:clamp(26px,4vw,40px);line-height:1.15;margin:0 0 22px;letter-spacing:-.01em}
+p.lead{font-size:clamp(17px,2.2vw,21px);color:var(--muted);max-width:780px;margin:0 0 28px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--muted)}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px}
+.card h3{margin:0 0 6px;font-size:16px}
+.card p{margin:0;color:var(--muted);font-size:14.5px}
+.num{font:700 34px/1 Inter;color:var(--accent);margin-bottom:6px}
+.flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.step .n{font:600 12px/1 JetBrains Mono,monospace;color:var(--accent-2);margin-bottom:8px}
+.step h3{margin:0 0 6px;font-size:15px}
+.step p{margin:0;color:var(--muted);font-size:13.5px}
+pre{margin:0;background:var(--code-bg);color:var(--code-text);border-radius:14px;padding:18px 20px;overflow:auto;font:13px/1.55 "JetBrains Mono",ui-monospace,monospace}
+.kw{color:#ff7b72}.st{color:#a5d6ff}.cm{color:#8b949e}.fn{color:#d2a8ff}
+ul.clean{margin:0;padding:0;list-style:none}
+ul.clean li{padding:10px 0;border-bottom:1px solid var(--line);color:var(--muted)}
+ul.clean li b{color:var(--text);font-weight:600}
+.matrix{display:grid;grid-template-columns:170px repeat(5,minmax(0,1fr));gap:6px;font-size:13.5px}
+.matrix div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--muted)}
+.matrix div.h{background:transparent;border:0;color:var(--text);font-weight:600}
+.matrix div.y{color:var(--text)}
+.matrix div.y:before{content:"● ";color:var(--ok)}
+.nav{position:fixed;right:16px;bottom:16px;display:flex;gap:8px;z-index:5}
+.nav button{background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:10px;width:40px;height:40px;font-size:16px;cursor:pointer}
+.nav button:hover{border-color:var(--accent)}
+.counter{position:fixed;left:16px;bottom:22px;font:500 12px/1 JetBrains Mono,monospace;color:var(--muted)}
+a{color:var(--accent-2)}
+
+
+.shotimg{width:100%;border-radius:12px;border:1px solid var(--line);box-shadow:0 18px 50px rgba(20,27,45,.18);display:block}
+.shot-cap{color:var(--muted);font-size:13px;margin-top:10px}
+.hero{display:flex;gap:28px;align-items:center}
+.hero img{width:120px;height:120px;flex-shrink:0}
+.chain{display:flex;flex-direction:column;gap:0;margin-top:8px}
+.cstep{display:flex;gap:12px;align-items:flex-start;font:13.5px/1.4 "JetBrains Mono",monospace}
+.cstep .d{width:12px;height:12px;border-radius:50%;background:var(--accent);margin-top:4px;flex-shrink:0;position:relative}
+.cstep:not(:last-child) .d:after{content:"";position:absolute;left:5px;top:12px;width:2px;height:26px;background:var(--line)}
+.cstep:last-child .d{background:#d64512}
+.cstep span{padding-bottom:16px}
+.sev{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;color:#fff}
+.s-err{background:#b4232c}.s-crit{background:#d64512}.s-maj{background:#c98a00}.s-min{background:#3b6cf0}
+.big{font:700 44px/1 Inter;color:var(--accent)}
+@media (max-width:820px){.hero{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<section class="slide"><div class="inner">
+  <div class="hero"><img src="icon.png" alt=""><div>
+  <div class="kicker">Настольное приложение · macOS · Windows</div>
+  <h1>Ревизор</h1>
+  <p class="lead">Анализатор кода конфигураций 1С: проверяет всю конфигурацию целиком по выгрузке в файлы — ошибки между модулями, клиент-сервер, обращения к базе в цикле через цепочку вызовов, стандарты 1С:ИТС.</p>
+  </div></div>
+  <div class="chips"><span class="chip">межмодульный анализ</span><span class="chip">цепочки вызовов</span><span class="chip">клиент-сервер</span><span class="chip">89 правил</span><span class="chip">подсветка как в конфигураторе</span><span class="chip">Go · Wails</span></div>
+</div></section>
+
+<section class="slide"><div class="inner">
+  <div class="kicker">Задача</div>
+  <h2>Ошибки, которые не видны в одном модуле</h2>
+  <div class="grid g3">
+    <div class="card"><h3>Вызов в никуда</h3><p>Метод общего модуля переименовали или сделали неэкспортным — вызовы в формах и объектах остались и падают у пользователя.</p></div>
+    <div class="card"><h3>Клиент и сервер</h3><p>Клиентская форма вызывает серверный модуль, серверный код — клиентский. Или в цикле на клиенте каждая итерация ходит на сервер.</p></div>
+    <div class="card"><h3>Скрытый запрос в цикле</h3><p>Цикл вызывает «безобидную» функцию, а та через три модуля выполняет запрос. В коде цикла запроса не видно.</p></div>
+  </div>
+</div></section>
+
+<section class="slide"><div class="inner">
+  <div class="kicker">Как работает</div>
+  <h2>Выгрузка → дерево разбора → граф вызовов → правила</h2>
+  <div class="flow">
+    <div class="step"><div class="n">01 · ВЫГРУЗКА</div><h3>Метаданные</h3><p>Объекты, реквизиты, табличные части, перечисления, формы, общие модули и их флаги, подписки и задания.</p></div>
+    <div class="step"><div class="n">02 · ПАРСЕР</div><h3>Встроенный язык</h3><p>Собственный парсер: дерево разбора, препроцессор, #Вставка/#Удаление расширений. 76 тыс. реальных модулей без ложных ошибок.</p></div>
+    <div class="step"><div class="n">03 · СВОДКИ</div><h3>Граф вызовов</h3><p>Методы, параметры, директивы, вызовы в циклах, обращения к базе. Дерево сворачивается — память не растёт.</p></div>
+    <div class="step"><div class="n">04 · ПРАВИЛА</div><h3>Замечания</h3><p>Межмодульные и локальные правила, важность, цепочка вызовов, код с подсветкой и объяснение.</p></div>
+  </div>
+</div></section>
+
+<section class="slide"><div class="inner">
+  <div class="kicker">Рабочее место</div>
+  <h2>Результат проверки</h2>
+  <img class="shotimg" src="main.jpg" alt="Окно Ревизора с результатами проверки">
+  <p class="shot-cap">Счётчики по важности работают как фильтры; правила, список замечаний и подробности: цепочка вызовов, код с подсветкой как в конфигураторе, объяснение правила. Демо-выгрузка с вымышленными данными.</p>
+</div></section>
+
+<section class="slide"><div class="inner">
+  <div class="kicker">Межмодульный анализ</div>
+  <h2>Цепочка вызовов до обращения к базе</h2>
+  <div class="grid g2">
+    <div class="card">
+      <span class="sev s-maj">Важно</span> <b>К12 · Серверный вызов в цикле на клиенте</b>
+      <p style="margin:10px 0">ФормаДокумента, строка 7: в цикле по товарам вызывается ЦенообразованиеВызовСервера.ЦенаТовара().</p>
+      <div class="chain">
+        <div class="cstep"><span class="d"></span><span>ЦенообразованиеВызовСервера.ЦенаТовара() — серверный вызов</span></div>
+        <div class="cstep"><span class="d"></span><span>ЦенообразованиеСервер.ЦенаТовара()</span></div>
+        <div class="cstep"><span class="d"></span><span>Запрос.Выполнить() · строка 17</span></div>
+      </div>
+    </div>
+<pre><span class="kw">&amp;НаКлиенте</span>
+<span class="kw">Процедура</span> <span class="fn">ЗаполнитьЦены</span>(Команда)
+	<span class="kw">Для Каждого</span> СтрокаТовара <span class="kw">Из</span> Объект.Товары <span class="kw">Цикл</span>
+		СтрокаТовара.Цена = ЦенообразованиеВызовСервера.ЦенаТовара(
+			СтрокаТовара.Номенклатура, Объект.ВидЦены);
+	<span class="kw">КонецЦикла</span>;
+<span class="kw">КонецПроцедуры</span>
+
+<span class="cm">// Ревизор: одна итерация = серверный вызов + запрос.</span>
+<span class="cm">// Исправление: ЦеныТоваров(массив) — один вызов до цикла.</span></pre>
+  </div>
+</div></section>
+
+<section class="slide"><div class="inner">
+  <div class="kicker">Правила</div>
+  <h2>Что проверяется</h2>
+  <div class="grid g3">
+    <div class="card"><div class="big">14</div><h3>Конфигурация целиком</h3><p>Несуществующие и неэкспортные методы, число параметров, клиент-сервер, объекты метаданных и значения перечислений, обработчики подписок и заданий, обращения к базе через цепочку.</p></div>
+    <div class="card"><div class="big">75</div><h3>Код модулей</h3><p>Корректность, транзакции, безопасность, производительность, стандарты 1С:ИТС и каталог диагностик BSL Language Server.</p></div>
+    <div class="card"><div class="big">37</div><h3>Запросы — в работе</h3><p>Правила для текстов запросов и проверка таблиц и полей по метаданным конфигурации.</p></div>
+  </div>
+  <p class="shot-cap"><span class="sev s-err">Ошибка</span> <span class="sev s-crit">Критично</span> <span class="sev s-maj">Важно</span> <span class="sev s-min">Совет</span> — профиль «Основной» без правил оформления, «Полный» — со всеми.</p>
+</div></section>
+
+<section class="slide"><div class="inner">
+  <div class="kicker">Каталог</div>
+  <h2>Каждое правило — с объяснением</h2>
+  <img class="shotimg" src="rules.jpg" alt="Каталог правил">
+  <p class="shot-cap">Почему это плохо, как исправить, примеры «плохо» и «хорошо», ссылка на стандарт. Любое правило можно отключить.</p>
+</div></section>
+
+<section class="slide"><div class="inner">
+  <div class="kicker">Итого</div>
+  <h2>Технические решения</h2>
+  <div class="grid g3">
+    <div class="card"><h3>Собственный парсер</h3><p>Дерево разбора встроенного языка, условия препроцессора, инструкции расширений; устойчив к ошибкам.</p></div>
+    <div class="card"><h3>Сводки вместо деревьев</h3><p>Модуль разбирается, проверяется и сворачивается в сводку — большие конфигурации в ограниченной памяти.</p></div>
+    <div class="card"><h3>Граф вызовов</h3><p>Общие модули, менеджеры, глобальные модули, контекст клиента и сервера, модули повторного использования.</p></div>
+    <div class="card"><h3>Бережная нагрузка</h3><p>По умолчанию половина ядер и мягкий предел памяти: проверка не мешает работать.</p></div>
+    <div class="card"><h3>Один файл</h3><p>Go + Wails: .app для macOS и .exe для Windows без установки зависимостей; консольная утилита для CI.</p></div>
+    <div class="card"><h3>Расширения</h3><p>Проверка вместе с основной конфигурацией или отдельно — без ложных ошибок по заимствованным объектам.</p></div>
+  </div>
+  <p class="shot-cap">Go · Wails · 1С:Предприятие 8.3 · <a href="https://github.com/Geronimo1984/1c-code-revizor">GitHub</a></p>
+</div></section>
+
+</div>
+<div class="counter" id="counter"></div>
+<div class="nav">
+  <button id="prev" aria-label="Предыдущий слайд">↑</button>
+  <button id="next" aria-label="Следующий слайд">↓</button>
+  <button id="theme" aria-label="Сменить тему">◐</button>
+</div>
+<script>
+(function(){
+  var deck=document.getElementById('deck'), slides=[].slice.call(document.querySelectorAll('.slide'));
+  var counter=document.getElementById('counter');
+  function current(){var y=deck.scrollTop,best=0;slides.forEach(function(s,i){if(Math.abs(s.offsetTop-y)<Math.abs(slides[best].offsetTop-y))best=i;});return best;}
+  function go(i){i=Math.max(0,Math.min(slides.length-1,i));deck.scrollTo({top:slides[i].offsetTop,behavior:'smooth'});}
+  function upd(){counter.textContent=(current()+1)+' / '+slides.length;}
+  deck.addEventListener('scroll',function(){window.requestAnimationFrame(upd);});
+  document.getElementById('prev').onclick=function(){go(current()-1);};
+  document.getElementById('next').onclick=function(){go(current()+1);};
+  document.addEventListener('keydown',function(e){
+    if(['ArrowDown','PageDown',' ','ArrowRight'].indexOf(e.key)>=0){e.preventDefault();go(current()+1);}
+    if(['ArrowUp','PageUp','ArrowLeft'].indexOf(e.key)>=0){e.preventDefault();go(current()-1);}
+  });
+  var root=document.documentElement;
+  try{var t=localStorage.getItem('theme');if(t)root.setAttribute('data-theme',t);}catch(e){}
+  document.getElementById('theme').onclick=function(){
+    var dark=root.getAttribute('data-theme')==='dark'||(!root.getAttribute('data-theme')&&window.matchMedia('(prefers-color-scheme: dark)').matches);
+    var t=dark?'light':'dark';root.setAttribute('data-theme',t);try{localStorage.setItem('theme',t);}catch(e){}
+  };
+  upd();
+})();
+</script>
+</body>
+</html>

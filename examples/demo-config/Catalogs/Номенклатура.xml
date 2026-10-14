@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<MetaDataObject xmlns="http://v8.1c.ru/8.3/MDClasses" xmlns:v8="http://v8.1c.ru/8.1/data/core" xmlns:xr="http://v8.1c.ru/8.3/xcf/readable" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.20">
+	<Catalog uuid="00000000-0000-0000-0000-000000000000">
+		<Properties>
+			<Name>Номенклатура</Name>
+		</Properties>
+		<ChildObjects>
+			<Attribute><Properties><Name>Артикул</Name></Properties></Attribute>
+			<Attribute><Properties><Name>ВидЦены</Name></Properties></Attribute>
+		</ChildObjects>
+	</Catalog>
+</MetaDataObject>
