@@ -85,11 +85,11 @@ a{color:var(--accent-2)}
 
 <section class="slide"><div class="inner">
   <div class="hero"><img src="icon.png" alt=""><div>
-  <div class="kicker">Настольное приложение · macOS · Windows</div>
+  <div class="kicker">Версия 2.0 · macOS · Windows · сервер MCP</div>
   <h1>Ревизор</h1>
   <p class="lead">Анализатор кода конфигураций 1С: проверяет всю конфигурацию целиком по выгрузке в файлы — ошибки между модулями, клиент-сервер, обращения к базе в цикле через цепочку вызовов, стандарты 1С:ИТС.</p>
   </div></div>
-  <div class="chips"><span class="chip">межмодульный анализ</span><span class="chip">цепочки вызовов</span><span class="chip">клиент-сервер</span><span class="chip">89 правил</span><span class="chip">подсветка как в конфигураторе</span><span class="chip">Go · Wails</span></div>
+  <div class="chips"><span class="chip">межмодульный анализ</span><span class="chip">цепочки вызовов</span><span class="chip">клиент-сервер</span><span class="chip">89 правил</span><span class="chip">подсветка как в конфигураторе</span><span class="chip">MCP для ИИ-ассистентов</span><span class="chip">подключение к базе</span><span class="chip">Go · Wails</span></div>
 </div></section>
 
 <section class="slide"><div class="inner">
@@ -165,6 +165,40 @@ a{color:var(--accent-2)}
 </div></section>
 
 <section class="slide"><div class="inner">
+  <div class="kicker">Новое в 2.0 · сервер MCP</div>
+  <h2>Глаза ИИ-ассистента на большой конфигурации</h2>
+  <div class="grid g2">
+    <div>
+      <p class="lead">ИИ хорошо понимает код, но не видит конфигурацию на десятки тысяч модулей целиком. Ревизор держит её индекс в памяти и отвечает ассистенту точными данными.</p>
+      <div class="chips"><span class="chip">callers / callees</span><span class="chip">db_chain</span><span class="chip">metadata_object</span><span class="chip">table_stats</span><span class="chip">recheck_module</span><span class="chip">sync_now</span></div>
+      <p class="shot-cap">Claude Code, Cursor и другие клиенты MCP. Ассистент смотрит, кто вызывает метод, до правки и сразу видит, что сломалось в других модулях, после.</p>
+    </div>
+<pre><span class="cm">▶ db_chain ЗаполнитьЦены (ФормаДокумента)</span>
+Обращается к базе:
+  → ЦенообразованиеВызовСервера.ЦенаТовара()
+  → ЦенообразованиеСервер.ЦенаТовара()
+  → Запрос.Выполнить() (строка 17)
+
+<span class="cm">▶ recheck_module ЦенообразованиеСервер</span>
+Новые замечания в других модулях (3):
+<span class="kw">К03</span> ObjectModule.bsl:19 [ЗаполнитьЦены]
+   Метод ЦенаТовара не экспортный.</pre>
+  </div>
+</div></section>
+
+<section class="slide"><div class="inner">
+  <div class="kicker">Новое в 2.0 · подключение к базе</div>
+  <h2>Проверка живой базы по расписанию</h2>
+  <div class="flow">
+    <div class="step"><div class="n">01 · ВЫГРУЗКА</div><h3>Только изменения</h3><p>Конфигуратор в пакетном режиме с -update: повторно выгружается только изменённое, пользователи продолжают работать.</p></div>
+    <div class="step"><div class="n">02 · ДАННЫЕ БАЗЫ</div><h3>HTTP-сервис</h3><p>Небольшое расширение отдаёт таблицы СУБД, индексы и размер данных объектов.</p></div>
+    <div class="step"><div class="n">03 · ПРОВЕРКА</div><h3>Конфигурация и расширения</h3><p>Все правила, межмодульный анализ, сравнение с прошлой проверкой.</p></div>
+    <div class="step"><div class="n">04 · ОТЧЁТ</div><h3>Что изменилось</h3><p>Изменённые объекты, новые и исправленные замечания; сервер MCP перечитывает индекс сам.</p></div>
+  </div>
+  <p class="shot-cap">Планировщик Windows запускает синхронизацию ночью или каждые несколько часов. Пароли — в диспетчере учётных данных Windows.</p>
+</div></section>
+
+<section class="slide"><div class="inner">
   <div class="kicker">Итого</div>
   <h2>Технические решения</h2>
   <div class="grid g3">
@@ -172,7 +206,7 @@ a{color:var(--accent-2)}
     <div class="card"><h3>Сводки вместо деревьев</h3><p>Модуль разбирается, проверяется и сворачивается в сводку — большие конфигурации в ограниченной памяти.</p></div>
     <div class="card"><h3>Граф вызовов</h3><p>Общие модули, менеджеры, глобальные модули, контекст клиента и сервера, модули повторного использования.</p></div>
     <div class="card"><h3>Бережная нагрузка</h3><p>По умолчанию половина ядер и мягкий предел памяти: проверка не мешает работать.</p></div>
-    <div class="card"><h3>Один файл</h3><p>Go + Wails: .app для macOS и .exe для Windows без установки зависимостей; консольная утилита для CI.</p></div>
+    <div class="card"><h3>Один файл</h3><p>Go + Wails: .app для macOS и .exe для Windows без установки зависимостей; консольная утилита для CI и сервер MCP.</p></div>
     <div class="card"><h3>Расширения</h3><p>Проверка вместе с основной конфигурацией или отдельно — без ложных ошибок по заимствованным объектам.</p></div>
   </div>
   <p class="shot-cap">Go · Wails · 1С:Предприятие 8.3 · <a href="https://github.com/Geronimo1984/1c-code-revizor">GitHub</a></p>
